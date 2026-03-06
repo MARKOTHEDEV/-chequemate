@@ -9,7 +9,9 @@ export const userKeys = {
   details: () => [...userKeys.all, "detail"] as const,
   detail: (id: string) => [...userKeys.details(), id] as const,
   stats: () => [...userKeys.all, "stats"] as const,
-  kyc: (id: string) => [...userKeys.all, "kyc", id] as const,
+  transactions: (id: string) => [...userKeys.all, "transactions", id] as const,
+  ajos: (id: string) => [...userKeys.all, "ajos", id] as const,
+  activity: (id: string) => [...userKeys.all, "activity", id] as const,
 };
 
 // Hook to get users list
@@ -37,11 +39,32 @@ export function useUserStats() {
   });
 }
 
-// Hook to get user KYC
-export function useUserKYC(userId: string) {
+// Hook to get user transactions
+export function useUserTransactions(
+  userId: string,
+  params?: { page?: number; page_size?: number; kind?: string; status?: string }
+) {
   return useQuery({
-    queryKey: userKeys.kyc(userId),
-    queryFn: () => userService.getUserKYC(userId),
+    queryKey: [...userKeys.transactions(userId), params],
+    queryFn: () => userService.getUserTransactions(userId, params),
+    enabled: !!userId,
+  });
+}
+
+// Hook to get user Ajo participation
+export function useUserAjos(userId: string) {
+  return useQuery({
+    queryKey: userKeys.ajos(userId),
+    queryFn: () => userService.getUserAjos(userId),
+    enabled: !!userId,
+  });
+}
+
+// Hook to get user activity log
+export function useUserActivity(userId: string) {
+  return useQuery({
+    queryKey: userKeys.activity(userId),
+    queryFn: () => userService.getUserActivity(userId),
     enabled: !!userId,
   });
 }
@@ -51,9 +74,9 @@ export function useSuspendUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: userService.suspendUser,
-    onSuccess: (_, userId) => {
-      // Invalidate user queries
+    mutationFn: ({ userId, reason }: { userId: string; reason?: string }) =>
+      userService.suspendUser(userId, reason),
+    onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       queryClient.invalidateQueries({ queryKey: userKeys.stats() });
@@ -66,38 +89,11 @@ export function useActivateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: userService.activateUser,
+    mutationFn: (userId: string) => userService.activateUser(userId),
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       queryClient.invalidateQueries({ queryKey: userKeys.stats() });
-    },
-  });
-}
-
-// Hook to approve KYC
-export function useApproveKYC() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: userService.approveKYC,
-    onSuccess: (_, userId) => {
-      queryClient.invalidateQueries({ queryKey: userKeys.kyc(userId) });
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
-    },
-  });
-}
-
-// Hook to reject KYC
-export function useRejectKYC() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
-      userService.rejectKYC(userId, reason),
-    onSuccess: (_, { userId }) => {
-      queryClient.invalidateQueries({ queryKey: userKeys.kyc(userId) });
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
     },
   });
 }

@@ -97,7 +97,7 @@ function getTransactionIcon(kind: string, direction: string) {
 }
 
 function getActivityIcon(iconName: string) {
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactNode> = {
     "user-plus": <UserPlus className="w-4 h-4" />,
     "mail-check": <MailCheck className="w-4 h-4" />,
     "shield-check": <ShieldCheck className="w-4 h-4" />,
