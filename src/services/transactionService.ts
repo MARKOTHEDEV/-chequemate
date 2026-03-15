@@ -135,19 +135,22 @@ export const transactionService = {
       : ADMIN_TRANSACTION_ENDPOINTS.list;
 
     const response = await api.get(url);
-    return response.data;
+    // Backend wraps response with apiresponse() - extract inner data
+    return response.data.data;
   },
 
   // Get transaction stats
   async getStats(): Promise<TransactionStats> {
     const response = await api.get(ADMIN_TRANSACTION_ENDPOINTS.stats);
-    return response.data;
+    // Backend wraps response with apiresponse() - extract inner data
+    return response.data.data;
   },
 
   // Get single transaction detail
   async getTransaction(id: string): Promise<TransactionDetail> {
     const response = await api.get(ADMIN_TRANSACTION_ENDPOINTS.detail(id));
-    return response.data;
+    // Backend wraps response with apiresponse() - extract inner data
+    return response.data.data;
   },
 
   // Export transactions
