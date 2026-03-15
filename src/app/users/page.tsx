@@ -426,6 +426,12 @@ export default function UsersPage() {
                   </th>
                   <th className="py-3 px-4 text-left">
                     <button className="flex items-center gap-1 text-xs font-medium text-[#6B7280]">
+                      Date Joined
+                      <ArrowUpDown className="w-3 h-3" />
+                    </button>
+                  </th>
+                  <th className="py-3 px-4 text-left">
+                    <button className="flex items-center gap-1 text-xs font-medium text-[#6B7280]">
                       Status
                       <ArrowUpDown className="w-3 h-3" />
                     </button>
@@ -504,6 +510,17 @@ export default function UsersPage() {
                     <td className="py-4 px-4">
                       <span className="text-sm text-[#1A1A1A]">
                         {formatCurrency(user.wallet_balance)}
+                      </span>
+                    </td>
+
+                    {/* Date Joined */}
+                    <td className="py-4 px-4">
+                      <span className="text-sm text-[#6B7280]">
+                        {new Date(user.date_joined).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </span>
                     </td>
 
