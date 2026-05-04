@@ -16,10 +16,11 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import userService, { AdminUser, UserStats } from "@/services/userService";
+import * as XLSX from "xlsx";
 
 // KYC status badge component
 function KYCBadge({ status }: { status: string }) {
@@ -206,6 +207,57 @@ export default function UsersPage() {
     staleTime: 10000, // 10 seconds
   });
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportUsers = useCallback(async () => {
+    setExporting(true);
+    try {
+      // Fetch all users (large page size to get everything)
+      const allUsersData = await userService.getUsers({
+        page_size: 10000,
+        status: activeTab === "all" ? undefined : activeTab,
+        search: debouncedSearch || undefined,
+        ordering: "-date_joined",
+      });
+
+      const rows = allUsersData.results.map((user) => ({
+        "First Name": user.first_name,
+        "Last Name": user.last_name,
+        Email: user.email,
+        "Phone Number": user.phone_number || "N/A",
+        "KYC Status": user.kyc_status,
+        "Trust Score": user.trust_score,
+        "Active Ajo": user.active_ajo_count,
+        "Wallet Balance": user.wallet_balance,
+        "Date Joined": new Date(user.date_joined).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
+        Status: user.is_active ? "Active" : "Suspended",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      // Auto-size columns
+      const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+        wch: Math.max(
+          key.length,
+          ...rows.map((row) => String(row[key as keyof typeof row]).length)
+        ) + 2,
+      }));
+      worksheet["!cols"] = colWidths;
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+      XLSX.writeFile(workbook, `users_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (error) {
+      console.error("Failed to export users:", error);
+    } finally {
+      setExporting(false);
+    }
+  }, [activeTab, debouncedSearch]);
+
   const totalPages = usersData ? Math.ceil(usersData.count / pageSize) : 1;
   const users = usersData?.results || [];
 
@@ -256,9 +308,17 @@ export default function UsersPage() {
           <p className="text-[#6B7280] text-sm">
             Monitor and manage all Chequemate users
           </p>
-          <button className="flex items-center gap-2 bg-[#008A48] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#007A3D] transition-colors">
-            <Download className="w-4 h-4" />
-            Export Users
+          <button
+            onClick={handleExportUsers}
+            disabled={exporting}
+            className="flex items-center gap-2 bg-[#008A48] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#007A3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {exporting ? "Exporting..." : "Export Users"}
           </button>
         </div>
 
